@@ -3,9 +3,8 @@ import { axiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-
-const BASE_URL = import.meta.env.MODE === 'development'? 'http://localhost:5001/api' : '/api';
-
+// Fix production socket connection
+const BASE_URL = import.meta.env.MODE === 'development' ? 'http://localhost:5001' : '';
 
 export const useAuthStore = create((set, get) => ({
     authUser: null,
@@ -15,7 +14,6 @@ export const useAuthStore = create((set, get) => ({
     isCheckingAuth: true,
     onlineUsers: [],
     socket: null,
-
 
     checkAuth: async () => {
         try {
@@ -91,17 +89,41 @@ export const useAuthStore = create((set, get) => ({
     connectSocket: async () => {
         const { authUser } = get()
         if (!authUser || get().socket?.connected) { return }
-        const socket = io(BASE_URL, {
-            query: {
-                userId: authUser._id,
-            }
-        })
-        socket.connect()
-        set({ socket: socket })
-        socket.on('getOnlineUsers', (userIds)=>{
-            set({onlineUsers: userIds})
-        })
+        
+        try {
+            // Create socket with better error handling and reconnection
+            const socket = io(BASE_URL, {
+                query: {
+                    userId: authUser._id,
+                },
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
+                timeout: 20000,
+                transports: ['websocket', 'polling']
+            });
+            
+            // Add connection event handlers
+            socket.on('connect', () => {
+                console.log('Socket connected:', socket.id);
+            });
+            
+            socket.on('connect_error', (err) => {
+                console.error('Socket connection error:', err);
+                toast.error('Connection to chat server failed');
+            });
+            
+            socket.connect();
+            set({ socket: socket });
+            
+            socket.on('getOnlineUsers', (userIds) => {
+                set({onlineUsers: userIds});
+            });
+        } catch (error) {
+            console.error('Socket connection failed:', error);
+            toast.error('Could not connect to chat server');
+        }
     },
+    
     disconnectSocket: async () => {
         if (get().socket?.connected) get().socket.disconnect()
     }
