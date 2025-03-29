@@ -110,21 +110,3 @@ ChitChat Chat App/
 │
 └── package.json            # Root package.json for deployment
 ```
-
-## Deployment
-
-The application is configured for deployment on platforms like Heroku, Render, or similar services.
-
-1. Set environment variables in your deployment platform.
-2. Run the build script: `npm run build`
-3. Start the production server: `npm start`
-
-The production build will serve the React frontend as static files from the backend Express server.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-This project is licensed under the ISC License.
